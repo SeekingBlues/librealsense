@@ -8,6 +8,7 @@
 #include <memory>
 #include <thread>
 #include <inttypes.h> // PRIu64
+#include <sys/endian.h>
 #include "tm-device.h"
 #include "stream.h"
 #include "media/playback/playback_device.h"
@@ -29,7 +30,9 @@ using namespace std::chrono;
 
 static uint64_t bytesSwap(uint64_t val)
 {
-#if defined(__linux__) || defined(__APPLE__)
+#ifdef ANDROID
+    return htonq(val);
+#elif defined(__linux__) || defined(__APPLE__)
     return htobe64(val);
 #else
     return _byteswap_uint64(val);

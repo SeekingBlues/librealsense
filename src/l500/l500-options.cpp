@@ -589,6 +589,8 @@ namespace librealsense
         case RS2_L500_VISUAL_PRESET_AUTOMATIC:
             _digital_gain->set_by_preset( RS2_DIGITAL_GAIN_AUTO );
             break;
+        default:
+            ;
         };
     }
 

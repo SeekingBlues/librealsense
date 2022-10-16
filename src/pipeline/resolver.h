@@ -328,8 +328,8 @@ namespace librealsense
                 case rs2_stream::RS2_STREAM_COLOR: return format == RS2_FORMAT_RGB8;
                 case rs2_stream::RS2_STREAM_DEPTH: return format == RS2_FORMAT_Z16;
                 case rs2_stream::RS2_STREAM_INFRARED: return format == RS2_FORMAT_Y8;
+                default: return false;
                 }
-                return false;
             }
 
             static bool sort_best_quality(std::shared_ptr<stream_profile_interface> lhs, std::shared_ptr<stream_profile_interface> rhs) {

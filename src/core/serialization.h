@@ -85,8 +85,9 @@ namespace librealsense
                     case option:
                     case notificaion:
                         return std::static_pointer_cast<T>(std::const_pointer_cast<serialized_data>(shared_from_this()));
+                    default:
+                        return nullptr;
                 }
-                return nullptr;
             }
 
             virtual device_serializer::nanoseconds get_timestamp() const

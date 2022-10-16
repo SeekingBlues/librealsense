@@ -413,8 +413,9 @@ namespace librealsense
 
             case RS2_STREAM_POSE:
                 return ros_pose_type_str();
+            default:
+                throw io_exception(to_string() << "Unknown stream type when resolving ros type: " << type);
             }
-            throw io_exception(to_string() << "Unknown stream type when resolving ros type: " << type);
         }
         static std::string create_from(const std::vector<std::string>& parts)
         {
