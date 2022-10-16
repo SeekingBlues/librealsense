@@ -1,7 +1,7 @@
 # ubuntu 12.04 LTS cmake version 2.8.7
 # ubuntu 14.04 LTS cmake version 2.8.12.2
-# ubuntu 16.04 LTS cmake version 3.5.1	
-cmake_minimum_required(VERSION 2.8.3)
+# ubuntu 16.04 LTS cmake version 3.5.1
+cmake_minimum_required(VERSION 3.1.0)
 
 project(usb)
 
@@ -30,9 +30,9 @@ elseif (APPLE)
   )
 elseif(ANDROID)
   LIST(APPEND LIBUSB_C
-  libusb/os/linux_usbfs.c
-  libusb/os/poll_posix.c
+  libusb/os/events_posix.c
   libusb/os/threads_posix.c
+  libusb/os/linux_usbfs.c
   libusb/os/linux_netlink.c
   )
 else()
