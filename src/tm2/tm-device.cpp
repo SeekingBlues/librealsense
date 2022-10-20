@@ -30,7 +30,7 @@ using namespace std::chrono;
 
 static uint64_t bytesSwap(uint64_t val)
 {
-#ifdef ANDROID
+#ifdef __ANDROID__
     return htonq(val);
 #elif defined(__linux__) || defined(__APPLE__)
     return htobe64(val);
