@@ -28,15 +28,13 @@
 
 #define ANDROID_LOG_TAG "librs"
 
-#define LOG_INFO(...)   do { std::ostringstream ss; ss << __VA_ARGS__; __android_log_write( ANDROID_LOG_INFO, ANDROID_LOG_TAG, ss.str().c_str() ); } while(false)
-#define LOG_WARNING(...)   do { std::ostringstream ss; ss << __VA_ARGS__; __android_log_write( ANDROID_LOG_WARN, ANDROID_LOG_TAG, ss.str().c_str() ); } while(false)
-#define LOG_ERROR(...)   do { std::ostringstream ss; ss << __VA_ARGS__; __android_log_write( ANDROID_LOG_ERROR, ANDROID_LOG_TAG, ss.str().c_str() ); } while(false)
-#define LOG_FATAL(...)   do { std::ostringstream ss; ss << __VA_ARGS__; __android_log_write( ANDROID_LOG_ERROR, ANDROID_LOG_TAG, ss.str().c_str() ); } while(false)
-#ifdef NDEBUG
-#define LOG_DEBUG(...)
-#else
-#define LOG_DEBUG(...)   do { std::ostringstream ss; ss << __VA_ARGS__; __android_log_write( ANDROID_LOG_DEBUG, ANDROID_LOG_TAG, ss.str().c_str() ); } while(false)
-#endif
+#define LOG_IMPL(level, ...) do { std::ostringstream ss; ss << '[' << __FILE__ << ':' << __LINE__ << ' ' << __func__ << "] " << __VA_ARGS__; __android_log_write( ANDROID_LOG_ ## level, ANDROID_LOG_TAG, "%s", ss.str().c_str() ); } while(false)
+
+#define LOG_DEBUG(...)   // LOG_IMPL(DEBUG, __VA_ARGS__)
+#define LOG_INFO(...)    LOG_IMPL(INFO, __VA_ARGS__)
+#define LOG_WARNING(...) LOG_IMPL(WARN, __VA_ARGS__)
+#define LOG_ERROR(...)   LOG_IMPL(ERROR, __VA_ARGS__)
+#define LOG_FATAL(...)   LOG_IMPL(ERROR, __VA_ARGS__)
 
 #else //__ANDROID__  
 
