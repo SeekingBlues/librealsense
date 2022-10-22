@@ -6,7 +6,7 @@ endif()
 
 set(SUPER_PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(LIBRARY_OUTPUT_DIR ${SUPER_PROJECT}/libs/armeabi-v7a)
-if (NOT IS_DIRECTORY LIBRARY_OUTPUT_DIR)
+if (NOT IS_DIRECTORY ${LIBRARY_OUTPUT_DIR})
     message(FATAL_ERROR "The expected library output directory (${LIBRARY_OUTPUT_DIR}) does not exist")
 endif()
 
