@@ -18,7 +18,19 @@ constexpr jint JNI_VERSION = JNI_VERSION_1_6;
 
 jobject create_pose2d(JNIEnv* env, const rs2_pose& pose)
 {
-    auto rot = env->NewObject(s_rotation2d, s_rotation2d_init); // FIXME: Actually calculate this
+    auto w = pose.rotation.w,
+         x = -pose.rotation.z,
+         y = pose.rotation.x,
+         z = -pose.rotation.y;
+
+    // See wrappers/python/examples/t265_rpy.py
+    // auto pitch = -asin(2.0 * (x * z - w * y));
+    // auto roll = atan2(2.0 * (w * x + y * z), w * w - x * x - y * y + z * z);
+    auto yaw = atan2(2.0 * (w * z + x * y), w * w + x * x - y * y - z * z);
+    if (yaw < 0)
+        yaw += 2.0 * M_PI;
+
+    auto rot = env->NewObject(s_rotation2d, s_rotation2d_init, static_cast<jdouble>(yaw));
     return env->NewObject(s_pose2d, s_pose2d_init, static_cast<jdouble>(pose.translation.x), static_cast<jdouble>(-pose.translation.z), rot);
 }
 }
@@ -35,7 +47,7 @@ jint JNI_OnLoad(JavaVM* vm, void*)
 
     auto rotation2d = env->FindClass("com/arcrobotics/ftclib/geometry/Rotation2d");
     s_rotation2d = static_cast<jclass>(env->NewGlobalRef(rotation2d));
-    s_rotation2d_init = env->GetMethodID(rotation2d, "<init>", "()V");
+    s_rotation2d_init = env->GetMethodID(rotation2d, "<init>", "(D)V");
     env->DeleteLocalRef(rotation2d);
 
     return JNI_VERSION;
