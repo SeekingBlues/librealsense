@@ -1,54 +1,90 @@
 #include <android/log.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <jni.h>
-#include <pthread.h>
-#include <string.h>
-#include <unistd.h>
+#include <optional>
 
 #include <librealsense2/rs.hpp>
 
 #define LOG(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, "T265", fmt, ##__VA_ARGS__)
-#define JNI_FUNC      extern "C" JNIEXPORT auto JNICALL
+#define JNI_FUNC      extern "C" JNIEXPORT jobject JNICALL
+
+#undef NDEBUG
+#include <assert.h>
 
 namespace {
-pthread_t s_thread;
-std::atomic<bool> s_stop_thread = false;
+std::optional<rs2::pipeline> s_pipeline;
+jclass s_pose2d = nullptr, s_rotation2d = nullptr;
+jmethodID s_pose2d_init = nullptr, s_rotation2d_init = nullptr;
+constexpr jint JNI_VERSION = JNI_VERSION_1_6;
+
+jobject create_pose2d(JNIEnv* env, const rs2_pose& pose)
+{
+    auto rot = env->NewObject(s_rotation2d, s_rotation2d_init); // FIXME: Actually calculate this
+    return env->NewObject(s_pose2d, s_pose2d_init, static_cast<jdouble>(pose.translation.x), static_cast<jdouble>(-pose.translation.z), rot);
+}
 }
 
-JNI_FUNC Java_org_firstinspires_ftc_teamcode_Driving_Odometry_odometryStart(JNIEnv*, jobject)
+jint JNI_OnLoad(JavaVM* vm, void*)
 {
-    s_stop_thread = false;
-    auto rc = pthread_create(
-        &s_thread, nullptr, [](void*) -> void* {
-            try {
-                rs2::pipeline pipe;
-                rs2::config cfg;
-                cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
-                pipe.start(cfg);
+    JNIEnv* env = nullptr;
+    vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
 
-                while (!s_stop_thread) {
-                    auto frames = pipe.wait_for_frames();
-                    auto frame = frames.first_or_default(RS2_STREAM_POSE);
-                    assert(frame);
-                    auto pose = frame.as<rs2::pose_frame>().get_pose_data();
-                    LOG("%10.3f %10.3f %10.3f", pose.translation.x, pose.translation.y, pose.translation.z);
-                }
-            } catch (const rs2::error& e) {
-                LOG("Camera failure: %s(%s): %s", e.get_failed_function().c_str(), e.get_failed_args().c_str(), e.what());
-            } catch (const std::exception& e) {
-                LOG("Unknown failure: %s", e.what());
-            }
-            LOG("Exiting thread");
-            return nullptr;
-        },
-        nullptr);
-    if (rc != 0)
-        LOG("Failed to create thread: %s", strerror(rc));
+    auto pose2d = env->FindClass("com/arcrobotics/ftclib/geometry/Pose2d");
+    s_pose2d = static_cast<jclass>(env->NewGlobalRef(pose2d));
+    s_pose2d_init = env->GetMethodID(pose2d, "<init>", "(DDLcom/arcrobotics/ftclib/geometry/Rotation2d;)V");
+    env->DeleteLocalRef(pose2d);
+
+    auto rotation2d = env->FindClass("com/arcrobotics/ftclib/geometry/Rotation2d");
+    s_rotation2d = static_cast<jclass>(env->NewGlobalRef(rotation2d));
+    s_rotation2d_init = env->GetMethodID(rotation2d, "<init>", "()V");
+    env->DeleteLocalRef(rotation2d);
+
+    return JNI_VERSION;
 }
 
-JNI_FUNC Java_org_firstinspires_ftc_teamcode_Driving_Odometry_odometryStop(JNIEnv*, jobject)
+void JNI_OnUnload(JavaVM* vm, void*)
 {
-    LOG("Stopping thread");
-    s_stop_thread = true;
+    JNIEnv* env = nullptr;
+    vm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION);
+    env->DeleteGlobalRef(s_pose2d);
+    env->DeleteGlobalRef(s_rotation2d);
+}
+
+JNI_FUNC Java_org_firstinspires_ftc_teamcode_Utils_Odometry_start(JNIEnv*, jobject)
+{
+    assert(!s_pipeline.has_value());
+    try {
+        s_pipeline.emplace();
+        rs2::config cfg;
+        cfg.enable_stream(RS2_STREAM_POSE, RS2_FORMAT_6DOF);
+        s_pipeline->start(cfg);
+    } catch (const rs2::error& e) {
+        LOG("Camera failure: %s(%s): %s", e.get_failed_function().c_str(), e.get_failed_args().c_str(), e.what());
+    } catch (const std::exception& e) {
+        LOG("Unknown failure: %s", e.what());
+    }
+    return nullptr;
+}
+
+JNI_FUNC Java_org_firstinspires_ftc_teamcode_Utils_Odometry_stop(JNIEnv*, jobject)
+{
+    assert(s_pipeline.has_value());
+    s_pipeline->stop();
+    s_pipeline.reset();
+    return nullptr;
+}
+
+JNI_FUNC Java_org_firstinspires_ftc_teamcode_Utils_Odometry_getPoseMeters(JNIEnv* env, jobject)
+{
+    try {
+        auto frames = s_pipeline->wait_for_frames();
+        auto frame = frames.first(RS2_STREAM_POSE);
+        auto pose = frame.as<rs2::pose_frame>().get_pose_data();
+        LOG("%10.3f %10.3f %10.3f", pose.translation.x, pose.translation.y, pose.translation.z);
+        return create_pose2d(env, pose);
+    } catch (const rs2::error& e) {
+        LOG("Camera failure: %s(%s): %s", e.get_failed_function().c_str(), e.get_failed_args().c_str(), e.what());
+    } catch (const std::exception& e) {
+        LOG("Unknown failure: %s", e.what());
+    }
+    return nullptr;
 }

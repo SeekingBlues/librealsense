@@ -28,9 +28,13 @@
 
 #define ANDROID_LOG_TAG "librs"
 
-#define LOG_IMPL(level, ...) do { std::ostringstream ss; ss << '[' << __FILE__ << ':' << __LINE__ << ' ' << __func__ << "] " << __VA_ARGS__; __android_log_write( ANDROID_LOG_ ## level, ANDROID_LOG_TAG, "%s", ss.str().c_str() ); } while(false)
+#define LOG_IMPL(level, ...) do { std::ostringstream ss; ss << '[' << __FILE_NAME__ << ':' << __LINE__ << ' ' << __func__ << "] " << __VA_ARGS__; __android_log_write( ANDROID_LOG_##level, ANDROID_LOG_TAG, "%s", ss.str().c_str() ); } while(false)
 
-#define LOG_DEBUG(...)   // LOG_IMPL(DEBUG, __VA_ARGS__)
+#ifndef NDEBUG
+    #define LOG_DEBUG(...) LOG_IMPL(DEBUG, __VA_ARGS__)
+#else
+    #define LOG_DEBUG(...)
+#endif
 #define LOG_INFO(...)    LOG_IMPL(INFO, __VA_ARGS__)
 #define LOG_WARNING(...) LOG_IMPL(WARN, __VA_ARGS__)
 #define LOG_ERROR(...)   LOG_IMPL(ERROR, __VA_ARGS__)
